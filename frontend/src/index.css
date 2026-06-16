@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-dark-bg: #070C16;
+  --color-dark-card: #0e1322;
+  --color-dark-sidebar: #0b0f19;
+  --color-light-bg: #f8fafc;
+  --color-light-card: #ffffff;
+  --color-light-sidebar: #eef2f6;
+  --color-accent: #4A3AFF;
+  --color-accent-hover: #372FEE;
+  --font-sans: 'Montserrat', 'Inter', sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-Montserrat: 'Montserrat', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-sans transition-colors duration-200 bg-light-bg dark:bg-dark-bg text-gray-800 dark:text-gray-100;
+  }
+  input, select, textarea, button {
+    font-family: 'Montserrat', 'Inter', sans-serif;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full hover:bg-gray-400 dark:hover:bg-gray-600;
+}
+
+/* Glassmorphism helpers */
+.glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .glass {
+  background: rgba(26, 31, 46, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Micro-animations */
+@keyframes pulse-subtle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.95;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s infinite ease-in-out;
+}
+
+@keyframes slide-up {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+/* Fade-in animation */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+/* Scale-in animation */
+@keyframes scale-in {
+  0% {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.35s ease-out forwards;
+}
+
+/* Card hover utility */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(99, 102, 241, 0.15),
+              0 4px 10px -3px rgba(0, 0, 0, 0.08);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 8px 25px -5px rgba(99, 102, 241, 0.25),
+              0 4px 10px -3px rgba(0, 0, 0, 0.3);
+}
+
+/* Color glow */
+.glow-accent {
+  box-shadow: 0 0 18px -3px rgba(99, 102, 241, 0.35);
+}
+
+.dark .glow-accent {
+  box-shadow: 0 0 24px -3px rgba(99, 102, 241, 0.5);
+}
+
+/* Gradient text utility */
+.text-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom scrollbar for roadmap containers */
+.custom-roadmap-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.custom-roadmap-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-roadmap-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark .custom-roadmap-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #ffffff;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}

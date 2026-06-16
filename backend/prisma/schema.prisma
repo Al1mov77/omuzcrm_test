@@ -1,0 +1,182 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  MENTOR
+  SUPER_ADMIN
+}
+
+enum StudentStatus {
+  ACTIVE
+  FINISHED
+  LEFT
+  TRANSFERED
+}
+
+enum Language {
+  TJ
+  RU
+  EN
+}
+
+model User {
+  id           String    @id @default(uuid())
+  phone        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role
+  avatarUrl    String?
+  birthDate    DateTime?
+  address      String?
+  branchId     String?
+  branch       Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  parentPhone  String?
+  language     Language  @default(RU)
+  coins        Int       @default(0)
+
+  // Relations
+  refreshTokens RefreshToken[]
+  transactions  CoinTransaction[]
+  redemptions   RewardRedemption[]
+  mentorGroups  Group[]            @relation("MentorGroups")
+  groupStudents GroupStudent[]
+  journalEntries JournalEntry[]
+  weekExams     WeekExam[]
+}
+
+model Branch {
+  id     String  @id @default(uuid())
+  name   String  @unique
+  users  User[]
+  groups Group[]
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  mentorId    String?
+  mentor      User?    @relation("MentorGroups", fields: [mentorId], references: [id], onDelete: SetNull)
+  classroom   String?
+  resourceUrl String?
+  isActive    Boolean  @default(true)
+
+  // Relations
+  students  GroupStudent[]
+  weeks     Week[]
+  schedules Schedule[]
+}
+
+model GroupStudent {
+  id         String        @id @default(uuid())
+  groupId    String
+  group      Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status     StudentStatus @default(ACTIVE)
+  leftReason String?
+  joinedAt   DateTime      @default(now())
+
+  @@unique([groupId, studentId])
+}
+
+model Schedule {
+  id        String @id @default(uuid())
+  groupId   String
+  group     Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  dayOfWeek Int    // 1 (Monday) to 7 (Sunday)
+  startTime String // HH:mm
+  endTime   String // HH:mm
+  classroom String?
+}
+
+model Week {
+  id         String   @id @default(uuid())
+  groupId    String
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  weekNumber Int      // e.g. 1, 2, 3...
+  lessons    Lesson[]
+  exams      WeekExam[]
+
+  @@unique([groupId, weekNumber])
+}
+
+model Lesson {
+  id             String         @id @default(uuid())
+  weekId         String
+  week           Week           @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  date           DateTime
+  journalEntries JournalEntry[]
+}
+
+model JournalEntry {
+  id        String   @id @default(uuid())
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attended  Boolean  @default(true)
+  score     Int      @default(0) // 0 to 5
+  note      String?
+
+  @@unique([lessonId, studentId])
+}
+
+model WeekExam {
+  id        String @id @default(uuid())
+  weekId    String
+  week      Week   @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attended  Boolean @default(true)
+  bonus     Int    @default(0)
+  examScore Int    @default(0)
+  sum       Int    @default(0)
+
+  @@unique([weekId, studentId])
+}
+
+model RewardItem {
+  id          String             @id @default(uuid())
+  title       String
+  imageUrl    String?
+  coinCost    Int
+  isAvailable Boolean            @default(true)
+  redemptions RewardRedemption[]
+}
+
+model RewardRedemption {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      RewardItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+}
+
+model CoinTransaction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int      // Positive for credit, negative for debit
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+}
