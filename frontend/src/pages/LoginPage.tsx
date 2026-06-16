@@ -158,7 +158,7 @@ export const LoginPage: React.FC = () => {
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').substring(0, 9))}
-                    placeholder="000000000"
+                    placeholder="900000000"
                     className="block w-full pl-18 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/80 rounded-xl focus:ring-2 focus:ring-[#4A3AFF] focus:border-[#4A3AFF] outline-none transition-all text-base font-medium"
                   />
                 </div>
@@ -285,7 +285,7 @@ export const LoginPage: React.FC = () => {
                       required
                       value={regPhone}
                       onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').substring(0, 9))}
-                      placeholder="000000000"
+                      placeholder="900000000"
                       className="block w-full pl-12 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/80 rounded-xl focus:ring-2 focus:ring-[#4A3AFF] focus:border-[#4A3AFF] outline-none transition-all text-sm font-medium"
                     />
                   </div>
@@ -303,7 +303,7 @@ export const LoginPage: React.FC = () => {
                       required
                       value={regParentsPhone}
                       onChange={(e) => setRegParentsPhone(e.target.value.replace(/\D/g, '').substring(0, 9))}
-                      placeholder="000000000"
+                      placeholder="900000000"
                       className="block w-full pl-12 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/80 rounded-xl focus:ring-2 focus:ring-[#4A3AFF] focus:border-[#4A3AFF] outline-none transition-all text-sm font-medium"
                     />
                   </div>
