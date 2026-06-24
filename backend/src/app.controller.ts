@@ -9,6 +9,10 @@ export class AppController {
   async getDiagnostics() {
     const diag: any = {
       timestamp: new Date().toISOString(),
+      dbPush: {
+        output: (PrismaService as any).dbPushOutput || '',
+        error: (PrismaService as any).dbPushError || ''
+      },
       database: {
         status: 'unknown',
         error: null,

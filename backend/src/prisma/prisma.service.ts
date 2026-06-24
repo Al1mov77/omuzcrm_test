@@ -5,6 +5,9 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  public static dbPushOutput: string = '';
+  public static dbPushError: string = '';
+
   constructor() {
     const adapter = new PrismaBetterSqlite3({ url: 'file:./dev.db' });
     super({ adapter });
@@ -16,9 +19,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       console.log('[PrismaService] Running database schema synchronization...');
       const { execSync } = require('child_process');
       // Execute prisma db push
-      execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+      const output = execSync('npx prisma db push --accept-data-loss', { encoding: 'utf8' });
+      PrismaService.dbPushOutput = String(output);
       console.log('[PrismaService] Database schema synchronized.');
-    } catch (err) {
+    } catch (err: any) {
+      PrismaService.dbPushError = err.message + '\n' + String(err.stderr || '') + '\n' + String(err.stdout || '');
       console.error('[PrismaService] Database synchronization error:', err);
     }
 
