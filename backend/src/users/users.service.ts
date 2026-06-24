@@ -298,7 +298,7 @@ export class UsersService {
     return this.getMe(userId);
   }
 
-  async findAll(role?: Role, branchId?: string, search?: string) {
+  async findAll(role?: Role, branchId?: string, search?: string, groupId?: string, courseId?: string) {
     const where: any = {};
 
     if (role) {
@@ -307,17 +307,44 @@ export class UsersService {
     if (branchId) {
       where.branchId = branchId;
     }
+    if (groupId) {
+      where.groupStudents = {
+        some: {
+          groupId,
+        },
+      };
+    }
+    if (courseId) {
+      where.groupStudents = {
+        some: {
+          group: {
+            courseId,
+          },
+        },
+      };
+    }
     if (search) {
       where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
+        { phone: { contains: search } },
       ];
     }
 
     const users = await this.prisma.user.findMany({
       where,
-      include: { branch: true },
+      include: { 
+        branch: true,
+        groupStudents: {
+          include: {
+            group: {
+              include: {
+                course: true,
+              },
+            },
+          },
+        },
+      },
       orderBy: { lastName: 'asc' },
     });
 

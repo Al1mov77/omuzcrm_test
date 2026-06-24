@@ -37,7 +37,8 @@ import {
   Activity,
   TrendingUp,
   UserX,
-  Trash2
+  Trash2,
+  Edit
 } from 'lucide-react';
 
 interface Mentor {
@@ -105,7 +106,12 @@ export const GroupsPage: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [mentors, setMentors] = useState<any[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Edit Mode states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
   // Student detail modal states
   const [modalStudentId, setModalStudentId] = useState<string | null>(null);
@@ -144,6 +150,8 @@ export const GroupsPage: React.FC = () => {
   const [gEndDate, setGEndDate] = useState('');
   const [gBranchId, setGBranchId] = useState('');
   const [gMentorId, setGMentorId] = useState('');
+  const [gCourseId, setGCourseId] = useState('');
+  const [gStudentLimit, setGStudentLimit] = useState(20);
   const [gClassroom, setGClassroom] = useState('');
   const [gResourceUrl, setGResourceUrl] = useState('');
   
@@ -196,7 +204,7 @@ export const GroupsPage: React.FC = () => {
   };
 
   const fetchMentorsAndBranches = async () => {
-    if (user?.role !== 'SUPER_ADMIN') return;
+    if (user?.role === 'STUDENT' || user?.role === 'MENTOR' || user?.role === 'TEACHER') return;
     try {
       const bRes = await api.get('/api/branches');
       setBranches(bRes.data);
@@ -204,6 +212,8 @@ export const GroupsPage: React.FC = () => {
       setMentors(mRes.data);
       const sRes = await api.get('/api/users', { params: { role: 'STUDENT' } });
       setStudentsCatalog(sRes.data);
+      const cRes = await api.get('/api/courses');
+      setCourses(cRes.data);
     } catch (e) {
       console.error(e);
     }
@@ -222,40 +232,69 @@ export const GroupsPage: React.FC = () => {
     fetchMentorsAndBranches();
   }, [user]);
 
+  const openEditGroup = (group: Group) => {
+    setIsEditMode(true);
+    setEditingGroupId(group.id);
+    setGName(group.name);
+    setGStartDate(group.startDate ? new Date(group.startDate).toISOString().split('T')[0] : '');
+    setGEndDate(group.endDate ? new Date(group.endDate).toISOString().split('T')[0] : '');
+    setGBranchId(group.branch?.id || '');
+    setGMentorId(group.mentor?.id || '');
+    setGCourseId((group as any).course?.id || (group as any).courseId || '');
+    setGStudentLimit((group as any).studentLimit || 20);
+    setGClassroom(group.classroom || '');
+    setGResourceUrl(group.resourceUrl || '');
+    setFormError('');
+    setFormSuccess('');
+    setCreateOpen(true);
+  };
+
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
     setFormSuccess('');
 
     try {
-      // 1. Create Group
-      const res = await api.post('/api/groups', {
+      const payload = {
         name: gName,
         startDate: new Date(gStartDate).toISOString(),
         endDate: new Date(gEndDate).toISOString(),
         branchId: gBranchId,
         mentorId: gMentorId || undefined,
+        courseId: gCourseId || undefined,
+        studentLimit: Number(gStudentLimit),
         classroom: gClassroom || undefined,
         resourceUrl: gResourceUrl || undefined,
-      });
+      };
 
-      const newGroupId = res.data.id;
+      if (isEditMode && editingGroupId) {
+        // Edit Group
+        await api.patch(`/api/groups/${editingGroupId}`, payload);
+        showToast('Group successfully updated', 'success');
+      } else {
+        // 1. Create Group
+        const res = await api.post('/api/groups', payload);
+        const newGroupId = res.data.id;
 
-      // 2. Add schedules if any
-      for (const sched of schedulesList) {
-        await api.post(`/api/timetable/${newGroupId}`, sched);
+        // 2. Add schedules if any
+        for (const sched of schedulesList) {
+          await api.post(`/api/timetable/${newGroupId}`, sched);
+        }
+        showToast('Group successfully created', 'success');
       }
 
-      // 3. Weeks and initial lesson are created automatically by the backend.
-
       setFormSuccess(t('common.success'));
-      showToast('Group successfully created', 'success');
       setGName('');
       setGClassroom('');
       setGResourceUrl('');
       setSchedulesList([]);
+      setGCourseId('');
+      setGStudentLimit(20);
       
       fetchGroups();
+      if (editingGroupId && selectedGroup && selectedGroup.id === editingGroupId) {
+        fetchGroupDetails(editingGroupId);
+      }
       setTimeout(() => setCreateOpen(false), 1200);
     } catch (err: any) {
       const msg = err.response?.data?.message || t('common.error');
@@ -390,25 +429,34 @@ export const GroupsPage: React.FC = () => {
                     {selectedGroup.name}
                   </h3>
                 </div>
-                {user?.role === 'SUPER_ADMIN' && (
-                  <button
-                    onClick={async () => {
-                      if (window.confirm(`Are you sure you want to delete group "${selectedGroup.name}"? This action cannot be undone.`)) {
-                        try {
-                          await api.delete(`/api/groups/${selectedGroup.id}`);
-                          navigate('/groups');
-                          showToast('Group deleted successfully', 'success');
-                        } catch (err: any) {
-                          const msg = err.response?.data?.message || 'Error deleting group';
-                          showToast(msg, 'error');
+                {['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user?.role || '') && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEditGroup(selectedGroup)}
+                      className="p-1 rounded-lg text-accent hover:bg-accent/10 transition-all cursor-pointer"
+                      title="Edit Group"
+                    >
+                      <Edit className="w-4.5 h-4.5" />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to delete group "${selectedGroup.name}"? This action cannot be undone.`)) {
+                          try {
+                            await api.delete(`/api/groups/${selectedGroup.id}`);
+                            navigate('/groups');
+                            showToast('Group deleted successfully', 'success');
+                          } catch (err: any) {
+                            const msg = err.response?.data?.message || 'Error deleting group';
+                            showToast(msg, 'error');
+                          }
                         }
-                      }
-                    }}
-                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer"
-                    title="Delete Group"
-                  >
-                    <Trash2 className="w-4.5 h-4.5" />
-                  </button>
+                      }}
+                      className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer"
+                      title="Delete Group"
+                    >
+                      <Trash2 className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
                 )}
               </div>
               <p className="text-xs text-gray-500 font-bold mt-1 pl-7">
@@ -416,7 +464,13 @@ export const GroupsPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="pl-7 mt-4 space-y-2.5">
+            <div className="pl-7 mt-4 space-y-2">
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Course: <span className="font-extrabold text-accent">{(selectedGroup as any).course?.name || 'No Course'}</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Limit: <span className="font-extrabold">{selectedGroup.students?.filter(s => s.status === 'ACTIVE').length || 0} / {(selectedGroup as any).studentLimit || 20}</span>
+              </div>
               {selectedGroup.resourceUrl && (
                 <a
                   href={selectedGroup.resourceUrl}
@@ -431,7 +485,7 @@ export const GroupsPage: React.FC = () => {
                   <span>Resources</span>
                 </a>
               )}
-              <div className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold">
+              <div className="text-[10px] text-gray-400 dark:text-gray-505 font-semibold">
                 {dateRange}
               </div>
             </div>
@@ -859,9 +913,20 @@ export const GroupsPage: React.FC = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400">Your center's academic groups and student average scores.</p>
         </div>
 
-        {user?.role === 'SUPER_ADMIN' && (
+        {['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user?.role || '') && (
           <button
             onClick={() => {
+              setIsEditMode(false);
+              setEditingGroupId(null);
+              setGName('');
+              setGStartDate('');
+              setGEndDate('');
+              setGBranchId('');
+              setGMentorId('');
+              setGCourseId('');
+              setGStudentLimit(20);
+              setGClassroom('');
+              setGResourceUrl('');
               setFormError('');
               setFormSuccess('');
               setCreateOpen(true);
@@ -902,7 +967,7 @@ export const GroupsPage: React.FC = () => {
                       <span className={`px-2.5 py-0.5 rounded-lg font-black text-xs ${colorClass}`}>
                         {score}%
                       </span>
-                      {user?.role === 'SUPER_ADMIN' && (
+                      {['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user?.role || '') && (
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -926,7 +991,9 @@ export const GroupsPage: React.FC = () => {
                     </div>
                   </div>
                   <h4 className="font-extrabold text-lg group-hover:text-accent transition-colors leading-snug">{g.name}</h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 font-semibold">Course: {(g as any).course?.name || 'No Course'}</p>
                   <p className="text-xs text-gray-500">Teacher: {g.mentor ? `${g.mentor.firstName} ${g.mentor.lastName}` : 'TBD'}</p>
+                  <p className="text-xs text-gray-500">Students: {g.students?.filter(s => s.status === 'ACTIVE').length || 0} / {(g as any).studentLimit || 20}</p>
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-gray-150 dark:border-gray-800 mt-2 text-xs font-bold text-accent">
@@ -958,7 +1025,7 @@ export const GroupsPage: React.FC = () => {
 
             <h3 className="text-xl font-bold flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-accent" />
-              <span>Create new academic group</span>
+              <span>{isEditMode ? 'Edit academic group' : 'Create new academic group'}</span>
             </h3>
 
             <form onSubmit={handleCreateGroup} className="space-y-5">
@@ -1054,6 +1121,36 @@ export const GroupsPage: React.FC = () => {
                       <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Course */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Course</label>
+                  <select
+                    required
+                    value={gCourseId}
+                    onChange={e => setGCourseId(e.target.value)}
+                    className="block w-full px-4 py-2.5 bg-gray-55 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-accent text-sm"
+                  >
+                    <option value="">Select course</option>
+                    {courses.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} - {c.price} TJS</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Student Limit */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Student limit</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    max={100}
+                    value={gStudentLimit}
+                    onChange={e => setGStudentLimit(parseInt(e.target.value, 10))}
+                    className="block w-full px-4 py-2.5 bg-gray-55 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-accent text-sm"
+                  />
                 </div>
               </div>
 

@@ -10,6 +10,9 @@ import { JournalModule } from './journal/journal.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { BranchesModule } from './branches/branches.module';
+import { CoursesModule } from './courses/courses.module';
+import { AccountingModule } from './accounting/accounting.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { BranchesModule } from './branches/branches.module';
     TimetableModule,
     RewardsModule,
     BranchesModule,
+    CoursesModule,
+    AccountingModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

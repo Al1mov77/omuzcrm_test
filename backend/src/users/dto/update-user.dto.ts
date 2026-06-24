@@ -42,4 +42,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   branchId?: string;
+
+  @ApiProperty({ example: 'student@example.com', description: 'User email address', required: false })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiProperty({ example: true, description: 'Is user active/locked', required: false })
+  @IsOptional()
+  isActive?: boolean;
 }

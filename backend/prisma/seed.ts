@@ -1,16 +1,14 @@
 import { PrismaClient, Role, StudentStatus, Language } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import * as bcrypt from 'bcrypt';
-import 'dotenv/config';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaBetterSqlite3({ url: 'file:./dev.db' });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Clearing database...');
   await prisma.refreshToken.deleteMany({});
+  await prisma.payment.deleteMany({});
   await prisma.coinTransaction.deleteMany({});
   await prisma.rewardRedemption.deleteMany({});
   await prisma.rewardItem.deleteMany({});
@@ -21,24 +19,35 @@ async function main() {
   await prisma.schedule.deleteMany({});
   await prisma.groupStudent.deleteMany({});
   await prisma.group.deleteMany({});
+  await prisma.course.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.branch.deleteMany({});
 
   console.log('Seeding branches...');
   const branchProfsouz = await prisma.branch.create({
-    data: { name: 'Profsouz' },
+    data: { 
+      name: 'Profsouz',
+      address: 'Profsouz St 12',
+      phone: '+992900111222',
+      email: 'profsouz@omuz.tj',
+    },
   });
   const branchDushanbe = await prisma.branch.create({
-    data: { name: 'Dushanbe' },
+    data: { 
+      name: 'Dushanbe',
+      address: 'Rudaki Ave 45',
+      phone: '+992900222333',
+      email: 'dushanbe@omuz.tj',
+    },
   });
 
   console.log('Hashing passwords...');
   const saPasswordHash = await bcrypt.hash('000000000', 12);
   const commonPasswordHash = await bcrypt.hash('password123', 12);
 
-  console.log('Seeding users...');
+  console.log('Seeding staff and admin users...');
   // Super Admin
-  await prisma.user.create({
+  const superAdmin = await prisma.user.create({
     data: {
       phone: '000000000',
       passwordHash: saPasswordHash,
@@ -49,10 +58,43 @@ async function main() {
       address: 'Profsouz St 12',
       birthDate: new Date('1990-01-01'),
       language: Language.RU,
+      email: 'superadmin@omuz.tj',
     },
   });
 
-  // Mentor
+  // Admin
+  const admin = await prisma.user.create({
+    data: {
+      phone: '992000002',
+      passwordHash: commonPasswordHash,
+      firstName: 'Jamshed',
+      lastName: 'Rahimov',
+      role: Role.ADMIN,
+      branchId: branchProfsouz.id,
+      address: 'Dushanbe, Ayni 15',
+      birthDate: new Date('1992-03-10'),
+      language: Language.TJ,
+      email: 'jamshed@omuz.tj',
+    },
+  });
+
+  // Manager
+  const manager = await prisma.user.create({
+    data: {
+      phone: '992000003',
+      passwordHash: commonPasswordHash,
+      firstName: 'Dilshod',
+      lastName: 'Karimov',
+      role: Role.MANAGER,
+      branchId: branchDushanbe.id,
+      address: 'Dushanbe, Somoni 22',
+      birthDate: new Date('1995-11-20'),
+      language: Language.EN,
+      email: 'dilshod@omuz.tj',
+    },
+  });
+
+  // Mentor/Teacher
   const mentor = await prisma.user.create({
     data: {
       phone: '992000001',
@@ -64,25 +106,57 @@ async function main() {
       address: 'Dushanbe, Rudaki 45',
       birthDate: new Date('1994-08-15'),
       language: Language.RU,
+      email: 'muhammad@omuz.tj',
+    },
+  });
+
+  // Assign branch managers
+  await prisma.branch.update({
+    where: { id: branchProfsouz.id },
+    data: { managerId: superAdmin.id },
+  });
+  await prisma.branch.update({
+    where: { id: branchDushanbe.id },
+    data: { managerId: manager.id },
+  });
+
+  console.log('Seeding courses...');
+  const courseNextJs = await prisma.course.create({
+    data: {
+      name: 'Next.js Development',
+      description: 'Learn Next.js from scratch, SSR, SSG, and APIs.',
+      price: 800,
+      duration: 5, // 5 weeks
+      isActive: true,
+    },
+  });
+
+  const courseReact = await prisma.course.create({
+    data: {
+      name: 'React.js Frontend',
+      description: 'Modern frontend development with React.',
+      price: 600,
+      duration: 6,
+      isActive: true,
     },
   });
 
   // 14 Students Data
   const studentsData = [
-    { phone: '200500102', firstName: 'Ahmadshoh', lastName: 'Hayotov', coins: 150, status: StudentStatus.ACTIVE },
-    { phone: '200500101', firstName: 'Amirjon', lastName: 'Shukurov', coins: 180, status: StudentStatus.ACTIVE },
-    { phone: '902374422', firstName: 'Muhammadumar', lastName: 'Azizov', coins: 100, status: StudentStatus.FINISHED },
-    { phone: '200500104', firstName: 'Alijon', lastName: 'Fazilzod', coins: 120, status: StudentStatus.ACTIVE },
-    { phone: '200500112', firstName: 'Firuz', lastName: 'Sharipov', coins: 90, status: StudentStatus.ACTIVE },
-    { phone: '110801555', firstName: 'Valid', lastName: 'Qodiri', coins: 110, status: StudentStatus.FINISHED },
-    { phone: '900420003', firstName: 'Ahmadsho', lastName: 'Raufov', coins: 95, status: StudentStatus.FINISHED },
-    { phone: '200000000', firstName: 'Test', lastName: 'Student', coins: 28, parentPhone: '987650319', birthDate: new Date('2010-12-13'), address: 'Firdavsi', status: StudentStatus.FINISHED },
-    { phone: '918934480', firstName: 'Abubakr', lastName: 'Umarov', coins: 85, status: StudentStatus.FINISHED },
-    { phone: '909765000', firstName: 'Yusuf', lastName: 'Karimov', coins: 89, status: StudentStatus.FINISHED },
-    { phone: '200500106', firstName: 'Iso', lastName: 'Musoev', coins: 88, status: StudentStatus.ACTIVE },
-    { phone: '200500113', firstName: 'Kawsar', lastName: 'Temirov', coins: 88, status: StudentStatus.ACTIVE },
-    { phone: '200500108', firstName: 'Muhammadyusuf', lastName: 'Samadov', coins: 88, status: StudentStatus.ACTIVE },
-    { phone: '200500114', firstName: 'Ismoil', lastName: 'Abdulloev', coins: 87, status: StudentStatus.ACTIVE },
+    { phone: '200500102', firstName: 'Ahmadshoh', lastName: 'Hayotov', coins: 150, status: StudentStatus.ACTIVE, email: 'ahmadshoh@example.com' },
+    { phone: '200500101', firstName: 'Amirjon', lastName: 'Shukurov', coins: 180, status: StudentStatus.ACTIVE, email: 'amirjon@example.com' },
+    { phone: '902374422', firstName: 'Muhammadumar', lastName: 'Azizov', coins: 100, status: StudentStatus.FINISHED, email: 'umar@example.com' },
+    { phone: '200500104', firstName: 'Alijon', lastName: 'Fazilzod', coins: 120, status: StudentStatus.ACTIVE, email: 'alijon@example.com' },
+    { phone: '200500112', firstName: 'Firuz', lastName: 'Sharipov', coins: 90, status: StudentStatus.ACTIVE, email: 'firuz@example.com' },
+    { phone: '110801555', firstName: 'Valid', lastName: 'Qodiri', coins: 110, status: StudentStatus.FINISHED, email: 'valid@example.com' },
+    { phone: '900420003', firstName: 'Ahmadsho', lastName: 'Raufov', coins: 95, status: StudentStatus.FINISHED, email: 'ahmadsho.r@example.com' },
+    { phone: '200000000', firstName: 'Test', lastName: 'Student', coins: 28, parentPhone: '987650319', birthDate: new Date('2010-12-13'), address: 'Firdavsi', status: StudentStatus.FINISHED, email: 'test@example.com' },
+    { phone: '918934480', firstName: 'Abubakr', lastName: 'Umarov', coins: 85, status: StudentStatus.FINISHED, email: 'abubakr@example.com' },
+    { phone: '909765000', firstName: 'Yusuf', lastName: 'Karimov', coins: 89, status: StudentStatus.FINISHED, email: 'yusuf@example.com' },
+    { phone: '200500106', firstName: 'Iso', lastName: 'Musoev', coins: 88, status: StudentStatus.ACTIVE, email: 'iso@example.com' },
+    { phone: '200500113', firstName: 'Kawsar', lastName: 'Temirov', coins: 88, status: StudentStatus.ACTIVE, email: 'kawsar@example.com' },
+    { phone: '200500108', firstName: 'Muhammadyusuf', lastName: 'Samadov', coins: 88, status: StudentStatus.ACTIVE, email: 'yusuf.samad@example.com' },
+    { phone: '200500114', firstName: 'Ismoil', lastName: 'Abdulloev', coins: 87, status: StudentStatus.ACTIVE, email: 'ismoil@example.com' },
   ];
 
   const students: any[] = [];
@@ -101,6 +175,7 @@ async function main() {
         birthDate: s.birthDate || new Date('2009-05-15'),
         address: s.address || 'Dushanbe St',
         language: Language.RU,
+        email: s.email,
       },
     });
     students.push({ user, status: s.status });
@@ -114,6 +189,8 @@ async function main() {
       endDate: new Date('2026-05-08'),
       branchId: branchProfsouz.id,
       mentorId: mentor.id,
+      courseId: courseNextJs.id,
+      studentLimit: 25,
       classroom: 'Room 303',
       resourceUrl: 'https://github.com/omuz/nextjs10-resources',
       isActive: true,
@@ -130,6 +207,34 @@ async function main() {
       },
     });
   }
+
+  console.log('Seeding payments...');
+  // Seed some payments
+  // Ahmadshoh paid full 800
+  await prisma.payment.create({
+    data: {
+      studentId: students[0].user.id,
+      amount: 800,
+      paymentType: 'CARD',
+      employeeId: admin.id,
+      comment: 'Full payment for Next.js Course',
+      date: new Date('2026-04-07'),
+    },
+  });
+
+  // Amirjon paid 500 (price is 800, so he owes 300)
+  await prisma.payment.create({
+    data: {
+      studentId: students[1].user.id,
+      amount: 500,
+      paymentType: 'CASH',
+      employeeId: manager.id,
+      comment: 'First installment',
+      date: new Date('2026-04-08'),
+    },
+  });
+
+  // Alijon paid 0 (he is debtor of 800)
 
   console.log('Seeding schedule...');
   await prisma.schedule.createMany({
@@ -158,8 +263,6 @@ async function main() {
     [new Date('2026-05-04'), new Date('2026-05-05'), new Date('2026-05-06'), new Date('2026-05-07'), new Date('2026-05-08')],
   ];
 
-  // Specific student exam sums for Weeks 1 to 5 to show progress
-  // Weeks mapping: [W1, W2, W3, W4, W5]
   const examSums: Record<string, number[]> = {
     'Ahmadshoh Hayotov': [95, 96, 98, 98, 99],
     'Amirjon Shukurov': [93, 95, 96, 96, 96],
@@ -190,11 +293,9 @@ async function main() {
 
       for (const s of students) {
         const fullName = `${s.user.firstName} ${s.user.lastName}`;
-        // Attendance probability: Umar is present on most, others are mostly present
         let attended = true;
         let note = undefined;
 
-        // Custom absences and notes for Alijon Fazilzod in Week 2
         if (fullName === 'Alijon Fazilzod' && w === 2) {
           if (d.getDate() === 13) {
             attended = true;
@@ -208,7 +309,6 @@ async function main() {
           }
         }
 
-        // Randomly set some student absent with note
         if (fullName !== 'Alijon Fazilzod' && Math.random() > 0.92) {
           attended = false;
           note = 'Пропустил урок по болезни';
@@ -219,19 +319,17 @@ async function main() {
             lessonId: lesson.id,
             studentId: s.user.id,
             attended,
-            score: attended ? Math.floor(Math.random() * 2) + 4 : 0, // mostly 4 or 5
+            score: attended ? Math.floor(Math.random() * 2) + 4 : 0,
             note,
           },
         });
       }
     }
 
-    // Week Exams
     for (const s of students) {
       const fullName = `${s.user.firstName} ${s.user.lastName}`;
       const sum = examSums[fullName] ? examSums[fullName][w - 1] : 85;
       
-      // Bonus: Shukurov has 10 bonus in Week 2, others have 0 or small bonus
       let bonus = 0;
       if (fullName === 'Amirjon Shukurov' && w === 2) {
         bonus = 10;

@@ -7,7 +7,6 @@ import {
   LayoutGrid,
   Calendar,
   Gift,
-  Users,
   MapPin,
   LogOut,
   Sun,
@@ -17,7 +16,12 @@ import {
   X,
   User as UserIcon,
   ChevronDown,
-  Globe
+  Globe,
+  LayoutDashboard,
+  BookOpen,
+  DollarSign,
+  GraduationCap,
+  Settings
 } from 'lucide-react';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -34,11 +38,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   if (!user) return null;
 
   const menuItems = [
-    { path: '/groups', label: 'Groups', translationKey: 'groups', icon: LayoutGrid, roles: ['STUDENT', 'MENTOR', 'SUPER_ADMIN'] },
-    { path: '/timetable', label: 'Timetable', translationKey: 'timeTable', icon: Calendar, roles: ['STUDENT', 'MENTOR', 'SUPER_ADMIN'] },
-    { path: '/rewards', label: 'Coins Shop', translationKey: 'rewards', icon: Gift, roles: ['STUDENT', 'MENTOR', 'SUPER_ADMIN'] },
-    { path: '/users', label: 'Users', translationKey: 'users', icon: Users, roles: ['SUPER_ADMIN'] },
-    { path: '/branches', label: 'Branches', translationKey: 'Branches', icon: MapPin, roles: ['SUPER_ADMIN'] },
+    { path: '/dashboard', label: 'Dashboard', translationKey: 'dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEACHER', 'MENTOR'] },
+    { path: '/students', label: 'Students', translationKey: 'students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEACHER', 'MENTOR'] },
+    { path: '/groups', label: 'Groups', translationKey: 'groups', icon: LayoutGrid, roles: ['STUDENT', 'MENTOR', 'TEACHER', 'SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+    { path: '/courses', label: 'Courses', translationKey: 'courses', icon: BookOpen, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEACHER', 'MENTOR'] },
+    { path: '/timetable', label: 'Timetable', translationKey: 'timeTable', icon: Calendar, roles: ['STUDENT', 'MENTOR', 'TEACHER', 'SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+    { path: '/accounting', label: 'Accounting', translationKey: 'accounting', icon: DollarSign, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+    { path: '/rewards', label: 'Coins Shop', translationKey: 'rewards', icon: Gift, roles: ['STUDENT', 'MENTOR', 'TEACHER', 'SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
+    { path: '/administration', label: 'Administration', translationKey: 'administration', icon: Settings, roles: ['SUPER_ADMIN', 'ADMIN'] },
+    { path: '/branches', label: 'Branches', translationKey: 'Branches', icon: MapPin, roles: ['SUPER_ADMIN', 'ADMIN'] },
   ];
 
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(user.role));
@@ -96,7 +104,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 }`}
               >
                 <item.icon className={`w-5 h-5 ${isActive ? 'text-[#1895b0]' : 'text-gray-500 dark:text-gray-400'}`} />
-                <span>{t(`sideBar.${item.translationKey}`)}</span>
+                <span>{t(`sideBar.${item.translationKey}`, item.label)}</span>
               </Link>
             );
           })}
@@ -129,10 +137,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           {/* Dashboard Title depending on Route */}
           <div>
             <h1 className="text-xl font-black text-slate-800 dark:text-white">
+              {location.pathname.startsWith('/dashboard') && 'Dashboard'}
+              {location.pathname.startsWith('/students') && 'Students'}
               {location.pathname.startsWith('/groups') && 'Groups'}
+              {location.pathname.startsWith('/courses') && 'Courses'}
               {location.pathname.startsWith('/timetable') && 'Timetable'}
-              {location.pathname.startsWith('/rewards') && t('Rewards.title')}
-              {location.pathname.startsWith('/users') && 'Users'}
+              {location.pathname.startsWith('/rewards') && (t('Rewards.title') || 'Rewards')}
+              {location.pathname.startsWith('/accounting') && 'Accounting'}
+              {location.pathname.startsWith('/administration') && 'Administration'}
               {location.pathname.startsWith('/branches') && 'Branches'}
               {location.pathname.startsWith('/profile') && (t('profile.title') || 'Profile')}
             </h1>

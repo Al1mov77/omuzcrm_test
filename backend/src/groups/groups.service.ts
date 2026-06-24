@@ -22,6 +22,7 @@ export class GroupsService {
                 select: { id: true, firstName: true, lastName: true, phone: true },
               },
               branch: true,
+              course: true,
             },
           },
         },
@@ -35,6 +36,7 @@ export class GroupsService {
           select: { id: true, firstName: true, lastName: true, phone: true },
         },
         branch: true,
+        course: true,
       },
     });
   }
@@ -44,6 +46,7 @@ export class GroupsService {
       where: { id },
       include: {
         branch: true,
+        course: true,
         mentor: {
           select: { id: true, firstName: true, lastName: true, phone: true, avatarUrl: true },
         },
@@ -81,6 +84,8 @@ export class GroupsService {
         endDate: new Date(createGroupDto.endDate),
         branchId: createGroupDto.branchId,
         mentorId: createGroupDto.mentorId,
+        courseId: createGroupDto.courseId,
+        studentLimit: createGroupDto.studentLimit ? Number(createGroupDto.studentLimit) : undefined,
         classroom: createGroupDto.classroom,
         resourceUrl: createGroupDto.resourceUrl,
       },
@@ -119,6 +124,8 @@ export class GroupsService {
         endDate: updateGroupDto.endDate ? new Date(updateGroupDto.endDate) : undefined,
         branchId: updateGroupDto.branchId,
         mentorId: updateGroupDto.mentorId,
+        courseId: updateGroupDto.courseId,
+        studentLimit: updateGroupDto.studentLimit ? Number(updateGroupDto.studentLimit) : undefined,
         classroom: updateGroupDto.classroom,
         resourceUrl: updateGroupDto.resourceUrl,
       },
@@ -157,9 +164,20 @@ export class GroupsService {
   }
 
   async addStudent(id: string, addStudentDto: AddStudentDto) {
-    const group = await this.prisma.group.findUnique({ where: { id } });
+    const group = await this.prisma.group.findUnique({
+      where: { id },
+      include: {
+        students: {
+          where: { status: StudentStatus.ACTIVE }
+        }
+      }
+    });
     if (!group) {
       throw new NotFoundException('Group not found');
+    }
+
+    if (group.students.length >= group.studentLimit) {
+      throw new BadRequestException('Гурӯҳ пур аст. Лимити донишҷӯён гузашт.');
     }
 
     const student = await this.prisma.user.findUnique({ where: { id: addStudentDto.studentId } });

@@ -22,6 +22,9 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
+    if (!user.isActive) {
+      throw new BadRequestException('Account is locked');
+    }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
@@ -43,6 +46,10 @@ export class AuthService {
         await this.prisma.refreshToken.delete({ where: { id: dbToken.id } });
       }
       throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    if (!dbToken.user.isActive) {
+      throw new UnauthorizedException('Account is locked');
     }
 
     const tokens = await this.generateTokens(dbToken.userId, dbToken.user.role);

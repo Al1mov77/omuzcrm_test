@@ -13,6 +13,11 @@ import { TimetablePage } from './pages/TimetablePage';
 import { RewardsPage } from './pages/RewardsPage';
 import { UsersPage } from './pages/UsersPage';
 import { BranchesPage } from './pages/BranchesPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { StudentsPage } from './pages/StudentsPage';
+import { CoursesPage } from './pages/CoursesPage';
+import { AccountingPage } from './pages/AccountingPage';
+import { AdministrationPage } from './pages/AdministrationPage';
 import './i18n/i18n';
 
 const App: React.FC = () => {
@@ -26,6 +31,34 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
 
             {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEACHER', 'MENTOR']}>
+                  <Layout>
+                    <DashboardPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEACHER', 'MENTOR']}>
+                  <Layout>
+                    <StudentsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/groups"
               element={
@@ -57,11 +90,31 @@ const App: React.FC = () => {
               }
             />
             <Route
+              path="/courses"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEACHER', 'MENTOR']}>
+                  <Layout>
+                    <CoursesPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/timetable"
               element={
                 <ProtectedRoute>
                   <Layout>
                     <TimetablePage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                  <Layout>
+                    <AccountingPage />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -87,6 +140,16 @@ const App: React.FC = () => {
               }
             />
             <Route
+              path="/administration"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+                  <Layout>
+                    <AdministrationPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/users"
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
@@ -99,7 +162,7 @@ const App: React.FC = () => {
             <Route
               path="/branches"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                   <Layout>
                     <BranchesPage />
                   </Layout>

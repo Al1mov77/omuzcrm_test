@@ -6,7 +6,7 @@ interface User {
   phone: string;
   firstName: string;
   lastName: string;
-  role: 'STUDENT' | 'MENTOR' | 'SUPER_ADMIN';
+  role: string;
   avatarUrl?: string;
   coins: number;
   language: 'TJ' | 'RU' | 'EN';

@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 generator client {
@@ -9,7 +9,10 @@ generator client {
 enum Role {
   STUDENT
   MENTOR
+  TEACHER
   SUPER_ADMIN
+  ADMIN
+  MANAGER
 }
 
 enum StudentStatus {
@@ -36,40 +39,78 @@ model User {
   birthDate    DateTime?
   address      String?
   branchId     String?
-  branch       Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branch       Branch?   @relation("BranchUsers", fields: [branchId], references: [id], onDelete: SetNull)
   parentPhone  String?
   language     Language  @default(RU)
   coins        Int       @default(0)
+  email        String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
 
   // Relations
-  refreshTokens RefreshToken[]
-  transactions  CoinTransaction[]
-  redemptions   RewardRedemption[]
-  mentorGroups  Group[]            @relation("MentorGroups")
-  groupStudents GroupStudent[]
-  journalEntries JournalEntry[]
-  weekExams     WeekExam[]
+  refreshTokens     RefreshToken[]
+  transactions      CoinTransaction[]
+  redemptions       RewardRedemption[]
+  mentorGroups      Group[]            @relation("MentorGroups")
+  groupStudents     GroupStudent[]
+  journalEntries    JournalEntry[]
+  weekExams         WeekExam[]
+  payments          Payment[]          @relation("StudentPayments")
+  processedPayments Payment[]          @relation("EmployeePayments")
+  managedBranches   Branch[]           @relation("BranchManager")
 }
 
 model Branch {
-  id     String  @id @default(uuid())
-  name   String  @unique
-  users  User[]
-  groups Group[]
+  id        String   @id @default(uuid())
+  name      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  managerId String?
+  manager   User?    @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
+  isActive  Boolean  @default(true)
+  users     User[]   @relation("BranchUsers")
+  groups    Group[]
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  duration    Int      // in weeks
+  isActive    Boolean  @default(true)
+  groups      Group[]
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     User     @relation("StudentPayments", fields: [studentId], references: [id], onDelete: Cascade)
+  amount      Float
+  paymentType String   // e.g. CASH, CARD, BANK
+  date        DateTime @default(now())
+  employeeId  String?
+  employee    User?    @relation("EmployeePayments", fields: [employeeId], references: [id], onDelete: SetNull)
+  comment     String?
 }
 
 model Group {
-  id          String   @id @default(uuid())
-  name        String
-  startDate   DateTime
-  endDate     DateTime
-  branchId    String
-  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  mentorId    String?
-  mentor      User?    @relation("MentorGroups", fields: [mentorId], references: [id], onDelete: SetNull)
-  classroom   String?
-  resourceUrl String?
-  isActive    Boolean  @default(true)
+  id           String   @id @default(uuid())
+  name         String
+  startDate    DateTime
+  endDate      DateTime
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  mentorId     String?
+  mentor       User?    @relation("MentorGroups", fields: [mentorId], references: [id], onDelete: SetNull)
+  courseId     String?
+  course       Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  studentLimit Int      @default(20)
+  classroom    String?
+  resourceUrl  String?
+  isActive     Boolean  @default(true)
 
   // Relations
   students  GroupStudent[]
@@ -180,3 +221,4 @@ model RefreshToken {
   token     String   @unique
   expiresAt DateTime
 }
+

@@ -112,16 +112,17 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.MENTOR, Role.TEACHER)
   @ApiOperation({ summary: 'List all users with filters' })
   @ApiResponse({ status: 200, description: 'Users returned successfully.' })
-  @ApiResponse({ status: 403, description: 'Forbidden (requires Super Admin).' })
   findAll(
     @Query('role') role?: Role,
     @Query('branchId') branchId?: string,
     @Query('search') search?: string,
+    @Query('groupId') groupId?: string,
+    @Query('courseId') courseId?: string,
   ) {
-    return this.usersService.findAll(role, branchId, search);
+    return this.usersService.findAll(role, branchId, search, groupId, courseId);
   }
 
   @Post()

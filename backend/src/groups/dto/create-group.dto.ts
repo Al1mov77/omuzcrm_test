@@ -36,4 +36,13 @@ export class CreateGroupDto {
   @IsOptional()
   @IsString()
   resourceUrl?: string;
+
+  @ApiProperty({ example: 'uuid-course-id', description: 'Associated Course ID', required: false })
+  @IsOptional()
+  @IsString()
+  courseId?: string;
+
+  @ApiProperty({ example: 20, description: 'Student enrollment limit', required: false })
+  @IsOptional()
+  studentLimit?: number;
 }

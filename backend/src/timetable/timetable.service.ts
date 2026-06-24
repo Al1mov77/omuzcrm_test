@@ -109,11 +109,69 @@ export class TimetableService {
     return group.schedules;
   }
 
+  private async checkOverlap(
+    groupId: string,
+    dayOfWeek: number,
+    startTime: string,
+    endTime: string,
+    classroom?: string,
+    excludeScheduleId?: string,
+  ) {
+    if (startTime >= endTime) {
+      throw new BadRequestException('Start time must be before end time');
+    }
+
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+    });
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+
+    const targetClassroom = classroom || group.classroom;
+    if (!targetClassroom) {
+      return;
+    }
+
+    // Find conflict schedules in the same branch and classroom on same day
+    const conflictSchedules = await this.prisma.schedule.findMany({
+      where: {
+        dayOfWeek,
+        classroom: targetClassroom,
+        group: {
+          branchId: group.branchId,
+        },
+        id: excludeScheduleId ? { not: excludeScheduleId } : undefined,
+      },
+      include: {
+        group: true,
+      },
+    });
+
+    for (const sched of conflictSchedules) {
+      if (startTime < sched.endTime && endTime > sched.startTime) {
+        throw new BadRequestException(
+          `Вақти ҷадвал бо гурӯҳи "${sched.group.name}" дар синфхонаи "${targetClassroom}" рӯзи ${dayOfWeek} соати ${sched.startTime}-${sched.endTime} мухолифат дорад.`,
+        );
+      }
+    }
+  }
+
   async addSchedule(groupId: string, createScheduleDto: CreateScheduleDto) {
     const group = await this.prisma.group.findUnique({ where: { id: groupId } });
     if (!group) {
       throw new NotFoundException('Group not found');
     }
+
+    const classroom = createScheduleDto.classroom || group.classroom || 'TBD';
+
+    await this.checkOverlap(
+      groupId,
+      createScheduleDto.dayOfWeek,
+      createScheduleDto.startTime,
+      createScheduleDto.endTime,
+      classroom,
+    );
 
     return this.prisma.schedule.create({
       data: {
@@ -121,7 +179,7 @@ export class TimetableService {
         dayOfWeek: createScheduleDto.dayOfWeek,
         startTime: createScheduleDto.startTime,
         endTime: createScheduleDto.endTime,
-        classroom: createScheduleDto.classroom || group.classroom,
+        classroom,
       },
     });
   }
@@ -132,13 +190,27 @@ export class TimetableService {
       throw new NotFoundException('Schedule slot not found in this group');
     }
 
+    const classroom = updateScheduleDto.classroom || schedule.classroom || 'TBD';
+    const dayOfWeek = updateScheduleDto.dayOfWeek !== undefined ? updateScheduleDto.dayOfWeek : schedule.dayOfWeek;
+    const startTime = updateScheduleDto.startTime || schedule.startTime;
+    const endTime = updateScheduleDto.endTime || schedule.endTime;
+
+    await this.checkOverlap(
+      groupId,
+      dayOfWeek,
+      startTime,
+      endTime,
+      classroom,
+      scheduleId,
+    );
+
     return this.prisma.schedule.update({
       where: { id: scheduleId },
       data: {
-        dayOfWeek: updateScheduleDto.dayOfWeek,
-        startTime: updateScheduleDto.startTime,
-        endTime: updateScheduleDto.endTime,
-        classroom: updateScheduleDto.classroom,
+        dayOfWeek,
+        startTime,
+        endTime,
+        classroom,
       },
     });
   }

@@ -52,4 +52,13 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(Language)
   language?: Language;
+
+  @ApiProperty({ example: 'student@example.com', description: 'User email address', required: false })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiProperty({ example: true, description: 'Is user active', required: false })
+  @IsOptional()
+  isActive?: boolean;
 }
