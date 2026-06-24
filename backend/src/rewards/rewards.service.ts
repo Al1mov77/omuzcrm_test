@@ -23,7 +23,7 @@ export class RewardsService {
     const where: any = { userId };
 
     if (search) {
-      where.reason = { contains: search, mode: 'insensitive' };
+      where.reason = { contains: search };
     }
 
     if (startDate || endDate) {
